@@ -1,7 +1,5 @@
-
-
-import { useCallback, useEffect, useState } from "react"
-import axios from "axios"
+import { useCallback, useEffect, useState } from "react";
+import axios from "axios";
 import { API } from "./api";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 
@@ -14,116 +12,234 @@ export default function PaymentEntryForm() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [companyBankAccounts, setCompanyBankAccounts] = useState([])
   const [partyContact, setpartyContact] = useState([])
-  const [contact_email, setcontact_email] = useState('')
+  const [purchaseTaxesandCharges,setPurchanseTaxes] = useState([])
+  const [taxwithholdingCategory,setTextWithHOlding] = useState([])
+  // const [accountPaidFrom, setaccountPaidFrom] = useState([])
   const [partyBankAccounts, setpartyBankAccounts] = useState([])
+  const [company,setCompany] = useState('')
+  const [Email,setEmails] = useState('')
+  const [partyBalance, setPartyBalance] = useState(null);
   const [isParty, setIsParty] = useState(false);
   const [isAccountSection, setIsAccountSection] = useState(false);
   const [isaccountPaid, setisaccountPaid] = useState(false);
+  const [isTaxesandCharges,setIsTaxesandCharges] = useState(false);
   const [isAccDimension, setisAccDimension] = useState(false);
+  const [isCheckboxChecked, setIsCheckboxChecked] = useState(false);
   const [partyName, setPartyName] = useState("");
   const [formData, setFormData] = useState({
     series: "ACC-PAY-YYYY.-",
     posting_date: new Date().toISOString().split("T")[0],
     payment_type: "receive",
-    company: "Cloud Native IT Solutions (Demo)",
+    company: "",
     mode_of_payment: "",
     party_type: "",
     party: "",
-    party_name:"",
-    bank_account:"",
-    party_bank_account:"",
-    contact_person:"",
+    party_name: "",
+    bank_account: "",
+    party_bank_account: "",
+    contact_person: "",
+    contact_email:"",
+    acount_paid_from:"",
     account_paid_to: "",
+    purchase_taxes_and_charges_template:"",
+    setPayment_type:"",
+    paid_from_account_currency:"AED",
+    tax_withholding_category:"",
     project: "",
     cost_center: "",
   });
 
-
   const fetchOptions = useCallback(async (doctype, setter) => {
     try {
-      const response = await axios.get(`${API.baseURL}method/frappe.client.get_list`, {
-        params: {
-          doctype,
-          fields: ["name"],
-        },
+      const response = await axios.get(`${API.baseURL}resource/${doctype}`, {
         headers: API.headers,
-      })
-      setter(response.data.message?.map((item) => item.name) || [])
+      });
+      setter(response.data.data?.map((item) => item.name) || []);
+      console.log(response.data);
       
     } catch (error) {
-      console.error(`Fetch error for ${doctype}:`, error)
-      setter([])
+      console.error(`Error fetching ${doctype}:`, error);
+      setter([]);
     }
-  }, [])
+  }, []);
+
+
 
   useEffect(() => {
-    fetchOptions("Party Type", setPartyTypes)
-    fetchOptions("Mode of Payment", setPaymentModes)
-    fetchOptions("Project", setProjects)
-    fetchOptions("Cost Center", setCostCenters)
-    fetchOptions("Account", setAccounts)
-  }, [fetchOptions])
+    fetchOptions("Company", setCompany);
+    fetchOptions("Party%20Type", setPartyTypes);
+    fetchOptions("Mode%20of%20Payment", setPaymentModes);
+    fetchOptions("Project", setProjects);
+    fetchOptions("Cost%20Center", setCostCenters);
+    fetchOptions("Account", setAccounts);
+    fetchOptions("Purchase%20Taxes%20and%20Charges%20Template", setPurchanseTaxes);
+    fetchOptions("Tax%20Withholding%20Category",setTextWithHOlding);
+
+  }, [fetchOptions]);
+
 
   useEffect(() => {
     if (formData.party_type) {
-      fetchOptions(formData.party_type, setParties)
+      
+      fetchOptions(formData.party_type, setParties);
     }
-    
-  }, [formData.party_type, fetchOptions])
-
-
-  const fetchBankoptions = useCallback(async (doctype, setter)=> {
-    try {
-      const response = await axios.get(`${API.baseURL}method/frappe.client.get_list`, {
-        params: {
-          doctype,
-          filters: [["company", "=", formData.party]],
-          fields: ["name"],
-        },
-        headers: API.headers,
-      });
-      
-      setter(response.data.message?.map((item) => item.name) || []);
-      console.log(response.data);
-      
-      
-    } catch (error) {
-      console.error(`Fetch error for ${doctype}:`, error)
-      setter([])
-    }
-  });
-
+  }, [formData.party_type, fetchOptions]);
+  const fetchBankOptions = useCallback(
+    async (doctype, setter) => {
+      try {
+        // Ensure `party` field is valid
+        if (!formData.party) {
+          console.error("Party field is empty");
+          setter([]);
+          return;
+        }
+  
+        // Define API parameters
+        const params = {
+          filters: JSON.stringify([["name", "=", formData.party]]), // Filtering by 'name'
+          fields: JSON.stringify(["name"]),
+        };
+  
+        // Fetch data from API
+        const response = await axios.get(`${API.baseURL}resource/${doctype}`, {
+          params,
+          headers: API.headers,
+        });
+  
+        // Extract matching names
+        const matchingNames = response.data.data?.map((item) => item.name) || [];
+        setter(matchingNames);
+        
+      } catch (error) {
+        console.error(`Fetch error for ${doctype}:`, error);
+        setter([]); // Reset state on error
+      }
+    },
+    [formData.party]
+  );
+  
   useEffect(() => {
     if (formData.party) {
-      fetchBankoptions("Bank Account", setCompanyBankAccounts)
-      fetchBankoptions("Bank Account", setpartyBankAccounts)
-      fetchBankoptions("Contact", setpartyContact)
+      fetchBankOptions("Bank%20Account", setCompanyBankAccounts);
+      fetchBankOptions("Bank%20Account", setpartyBankAccounts);
+      fetchBankOptions("Contact", setpartyContact);
     }
-  }, [formData.party]);
+  }, [formData.party, fetchBankOptions]);
 
-  useEffect(()=>{
-    if (formData.contact_person){
-      fetchBankoptions("Email", setcontact_email)
+  const fetchEmails = useCallback(
+    async (setter) => {
+      try {
+        // Ensure `contact_person` field is valid
+        if (!formData.contact_person) {
+          console.error("Contact person is empty");
+          setter([]);
+          return;
+        }
+  
+        // Fetch data from API
+        const response = await axios.get(`${API.baseURL}resource/Contact`, {
+          params: {
+            filters: JSON.stringify([["name", "=", formData.contact_person]]),
+            fields: JSON.stringify(["email_id"]), 
+          },
+          headers: API.headers,
+        });
+  
+        // Extract emails
+        const emails = response.data.data?.map((item) => item.email_id) || [];
+     
+        
+        setter(emails);
+      } catch (error) {
+        console.error("Fetch error for emails:", error);
+        setter([]);
+      }
+    },
+    [formData.contact_person]
+  );
+  
+  useEffect(() => {
+    if (formData.contact_person) {
+      fetchEmails(setEmails); // Replace `setEmails` with the setter function you're using for emails
     }
-  })
+  }, [formData.contact_person, fetchEmails]);
+  
+
+  const fetchAccounts = useCallback(
+    async (doctype, setter) => {
+      try {
+        if (!formData.party) {
+          console.error("Party field is empty");
+          setter(null);
+          return;
+        }
+  
+        // Only fetch "Account Paid From" if the party and payment_type are valid
+        if (doctype === "Account Paid From" && (!formData.payment_type || !in_list(["Internal Transfer", "Pay"], formData.payment_type))) {
+          console.error("Invalid payment_type or missing party for Account Paid From");
+          setter(null);
+          return;
+        }
+  
+        // API URL to fetch party balance from GL Entry
+        const response = await axios.get(`${API.baseURL}resource/${doctype}`, {
+          params: {
+            filters: JSON.stringify([["party", "=", formData.party]]),
+            fields: JSON.stringify(["party", "debit", "credit"]),
+          },
+          headers: API.headers,
+        });
+  
+        const transactions = response.data.data || [];
+  
+        // Calculate balance (sum of debit - sum of credit)
+        const balance = transactions.reduce((acc, txn) => acc + (txn.debit || 0) - (txn.credit || 0), 0);
+  
+        setter(balance);
+        
+      } catch (error) {
+        console.error(`Fetch error for ${doctype}:`, error);
+        setter(null);
+      }
+    },
+    [formData.party, formData.payment_type]  // Add payment_type to dependencies
+  );
+  
+  useEffect(() => {
+    if (formData.party) {
+      // Fetch balance and update states
+      fetchAccounts("GL Entry", setPartyBalance);
+    }
+  }, [formData.party, formData.payment_type, fetchAccounts]);
+  
+  
+  
+  const handleCheckboxChange = () => {
+    setIsCheckboxChecked((prev) => !prev);
+  };
+  
 
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const response = await axios.post(`${API.baseURL}resource/Payment Entry`, formData, { headers: API.headers })
-      console.log("Success:", response.data)
+      const response = await axios.post(
+        `${API.baseURL}resource/Payment%20Entry`,
+        formData,
+        { headers: API.headers }
+      );
+      console.log("Success:", response.data);
       // TODO: Add success notification
     } catch (error) {
-      console.error("Error:", error)
+      console.error("Error:", error);
       // TODO: Add error notification
     }
-  }
+  };
 
   return (
     <div className="w-full max-w-9xl mx-auto p-6">
@@ -191,7 +307,7 @@ export default function PaymentEntryForm() {
                     type="text"
                     id="company"
                     name="company"
-                    value={formData.company}
+                    value={company}
                     readOnly
                     className="w-full p-2 border rounded-md bg-indigo-50"
                   />
@@ -211,6 +327,7 @@ export default function PaymentEntryForm() {
                     onChange={handleChange}
                     className="w-full p-2 border rounded-md bg-indigo-50"
                   >
+                    <option value=""></option>
                     {paymentModes.map((mode) => (
                       <option key={mode.name} value={mode.name}>
                         {mode}
@@ -348,6 +465,7 @@ export default function PaymentEntryForm() {
                           onChange={handleChange}
                           className="w-full p-2 border rounded-md bg-indigo-50"
                         >
+                          <option value=""></option>
                           {partyContact.map((party) => (
                             <option key={party} value={party}>
                               {party}
@@ -363,9 +481,9 @@ export default function PaymentEntryForm() {
                         type="text"
                         id="contact_emailv"
                         name="contact_email"
-                        value={formData.contact_email}
+                        value={Email}
                         readOnly
-                        className="w-full p-2 border rounded-md bg-indigo-50"
+                        className="w-full p-2 border rounded-md text-gray-500 bg-indigo-50"
                       />
                     </div>
                   </div>
@@ -399,7 +517,7 @@ export default function PaymentEntryForm() {
                           type="text"
                           id="party_balance"
                           name="party_balance"
-                          value={formData.party_balance || ""}
+                          value={`${partyBalance}.00 د.إ`}
                           onChange={handleChange}
                           className="w-full p-2 border rounded-md bg-indigo-50 text-gray-700"
                         />
@@ -409,14 +527,21 @@ export default function PaymentEntryForm() {
                         <label htmlFor="account_paid_from" className="block text-sm font-medium text-left text-gray-700">
                           Account Paid From
                         </label>
-                        <input
+                        <select
                           type="text"
                           id="account_paid_from"
                           name="account_paid_from"
-                          value={formData.account_paid_from || ""}
+                          value={accounts.acount_paid_from}
                           onChange={handleChange}
                           className="w-full p-2 border rounded-md bg-indigo-50 text-gray-700"
-                        />
+                        >
+                          
+                          {accounts.map((account) => (
+                            <option key={account} value={account}>
+                              {account}
+                            </option>
+                          ))}
+                         </select>   
                       </div>
 
                       <div className="space-y-2">
@@ -427,7 +552,7 @@ export default function PaymentEntryForm() {
                           type="text"
                           id="account_currency_from"
                           name="account_currency_from"
-                          value={formData.account_currency_from || ""}
+                          value={formData.paid_from_account_currency}
                           onChange={handleChange}
                           className="w-full p-2 border rounded-md bg-indigo-50 text-gray-700"
                         />
@@ -441,7 +566,7 @@ export default function PaymentEntryForm() {
                           type="text"
                           id="account_balance_from"
                           name="account_balance_from"
-                          value={formData.account_balance_from || ""}
+                          value={`${partyBalance}.00 د.إ`}
                           onChange={handleChange}
                           className="w-full p-2 border rounded-md bg-indigo-50 text-gray-700"
                         />
@@ -496,7 +621,7 @@ export default function PaymentEntryForm() {
                               type="text"
                               id="account_balance_to"
                               name="account_balance_to"
-                              value="د.إ 0.00"
+                              value={"د.إ 0.00"}
                               readOnly
                               className="w-full p-2 border rounded-md bg-indigo-50"
                             />
@@ -508,11 +633,91 @@ export default function PaymentEntryForm() {
                 )}
               </div>
             <hr />
+            {/* Taxes and Charges Section */}
+            {(formData.party_type === "Customer" | formData.party_type === "Supplier")&&
+            <>
+              <div className="space-y-4 p-6">
+           
+            <button
+              onClick={() => setIsTaxesandCharges((prev) => !prev)}
+              className="flex items-center space-x-2 text-sm "
+            >
+              <h3 className="text-lg font-medium">Taxes and Charges</h3>
+              <span className="text-sm">{isAccDimension ? <IoIosArrowUp /> : <IoIosArrowDown />}</span>
+            </button>
+
+                {isTaxesandCharges &&(
+                <div className=" grid grid-cols-1 md:grid-cols-2 gap-4 justify-end">
+                  <div className="space-y-2 ">
+                    <label htmlFor="account_paid_to" className="block text-left text-sm font-medium text-gray-700">
+                    Purchase Taxes and Charges Template
+                    </label>
+                    <select
+                      id="purchase_taxes_and_charges_template"
+                      name="purchase_taxes_and_charges_template"
+                      value={formData.purchase_taxes_and_charges_template}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-md bg-indigo-50"
+                    >
+                      {purchaseTaxesandCharges.map((mode) => (
+                      <option key={mode.name} value={mode.name}>
+                        {mode}
+                      </option>
+                    ))}
+                    </select>
+                  </div>
+                  <div className="space-y-4">
+                  {/* Checkbox */}
+                  <div>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isCheckboxChecked}
+                        onChange={handleCheckboxChange}
+                        className="mr-2"
+                      />
+                      Show Tax Withholding Category
+                    </label>
+                        </div>
+
+                    {/* Conditional Div */}
+                    {isCheckboxChecked && (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="account_paid_to"
+                          className="block text-left text-sm font-medium text-gray-700"
+                        >
+                          Tax Withholding Category
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          id="tax_withholding_category"
+                          name="tax_withholding_category"
+                          value={formData.account_paid_to}
+                          onChange={handleChange}
+                          className="w-full p-2 border rounded-md bg-indigo-50"
+                        >
+                          {taxwithholdingCategory.map((mode) => (
+                            <option key={mode} value={mode}>
+                              {mode}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                </div>
+              </div>
+              )}
+            </div>
+            <hr />
+            </>
+}
+
             {/* Accounting Dimensions Section */}
             <div className="space-y-4 p-6">
            
             <button
-              onClick={() => setisAccDimension((prev) => !prev)} // Toggle the state
+              onClick={() => setisAccDimension((prev) => !prev)} 
               className="flex items-center space-x-2 text-sm "
             >
               <h3 className="text-lg font-medium">Accounting Dimensions</h3>
