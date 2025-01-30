@@ -72,6 +72,10 @@ const PaymentEntryForm = () => {
         headers: API.headers,
       });
       setter(response.data.data?.map((item) => item.name) || []);
+      if (doctype === "Account"){
+        
+      }
+      
     } catch (error) {
       console.error(`Error fetching ${doctype}:`, error);
       setter([]);
@@ -106,6 +110,7 @@ const PaymentEntryForm = () => {
       fetchOptions(formData.party_type, setParties);
     }
   }, [formData.party_type, fetchOptions]);
+  
 
   useEffect(() => {
     if (formData.party) {
