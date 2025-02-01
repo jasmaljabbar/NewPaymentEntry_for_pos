@@ -1,7 +1,7 @@
 import InputField from "./InputField";
 import SelectField from "./SelectField";
 
-const AccountsSection = ({ formData, handleChange, accounts, partyBalance, isAccountPaid, setIsAccountPaid }) => (
+const AccountsSection = ({ formData, handleChange, accounts, accountsFrom, partyBalance, isAccountPaid, setIsAccountPaid }) => (
   <div className="space-y-4">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Left Section */}
@@ -20,7 +20,7 @@ const AccountsSection = ({ formData, handleChange, accounts, partyBalance, isAcc
           name="paid_from"
           value={formData.paid_from}
           onChange={handleChange}
-          options={accounts}
+          options={accountsFrom}
           required
         />
         <InputField

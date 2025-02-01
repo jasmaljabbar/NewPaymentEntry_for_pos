@@ -8,7 +8,7 @@ const SelectField = ({ label, name, value, onChange, options, required, classNam
         name={name}
         value={value}
         onChange={onChange}
-        className={`w-full p-2 border rounded-md bg-indigo-50 ${className}`}
+        className={`w-full p-2 border-0 rounded-md bg-fuchsia-100  ${className}`}
         required={required}
       >
         <option value="">Select {label}</option>
